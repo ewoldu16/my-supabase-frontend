@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Boycott Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f9ff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #002147;
+    }
+    .form-section {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+    }
+    select, input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    button {
+      background: #0066cc;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #004c99;
+    }
+    .total {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      margin: 20px 0;
+      color: #004c99;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+    th {
+      background: #0066cc;
+      color: #fff;
+    }
+    td button {
+      background: #cc0000;
+      padding: 5px 10px;
+    }
+    td button:hover {
+      background: #990000;
+    }
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      tr {
+        margin-bottom: 10px;
+      }
+      td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+      }
+      td::before {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-weight: bold;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Boycott Tracker</h1>
+
+<div class="form-section">
+  <label for="opponent">Opponent</label>
+  <select id="opponent"></select>
+
+  <label for="stand">Stand</label>
+  <select id="stand">
+    <option value="">-- Select Stand --</option>
+    <option>Kop</option>
+    <option>Grandstand</option>
+    <option>North Stand</option>
+    <option>South Stand</option>
+  </select>
+
+  <label for="section">Section</label>
+  <select id="section">
+    <option value="">-- Select Section --</option>
+    <option>A</option>
+    <option>B</option>
+    <option>C</option>
+  </select>
+
+  <label for="ticketType">Ticket Type</label>
+  <select id="ticketType">
+    <option value="">-- Select Type --</option>
+    <option>Adult</option>
+    <option>Concession</option>
+    <option>Under17</option>
+    <option>Under11</option>
+  </select>
+
+  <label for="quantity">Quantity</label>
+  <input type="number" id="quantity" min="1" value="1">
+
+  <p><strong>Price per Ticket: £<span id="price">0</span></strong></p>
+
+  <button onclick="addEntry()">Record Boycott</button>
+</div>
+
+<div class="total">Total Boycott: £<span id="total">0</span></div>
+
+<table id="recordsTable">
+  <thead>
+    <tr>
+      <th>Opponent</th>
+      <th>Stand</th>
+      <th>Section</th>
+      <th>Ticket Type</th>
+      <th>Quantity</th>
+      <th>Price</th>
+      <th>Subtotal</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- ======= Supabase Integration ======= -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+
+  // Replace with your actual values from Supabase Project Settings → API
+  const supabaseUrl = "https://gjtvplruzqagjigpvcjp.supabase.co";
+  const supabaseKey = "sb_publishable_yJOCn-MQYJgKc3Rv77NVxw_FCQQXKDX";
+  const db = createClient(supabaseUrl, supabaseKey);
+
+  async function saveRecord(record) {
+    let { data, error } = await db.from('boycotts').insert([record]);
+    if (error) {
+      console.error("Error saving:", error);
+    } else {
+      console.log("Saved successfully:", data);
+    }
+  }
+</script>
+
+<script>
+const ticketPrices = {
+  "Kop": {
+    "A": { "Adult": 40, "Concession": 30, "Under17": 20, "Under11": 15 },
+    "B": { "Adult": 35, "Concession": 25, "Under17": 15, "Under11": 10 },
+    "C": { "Adult": 30, "Concession": 20, "Under17": 15, "Under11": 10 }
+  },
+  "Grandstand": {
+    "A": { "Adult": 42, "Concession": 32, "Under17": 15, "Under11": 10 },
+    "B": { "Adult": 37, "Concession": 27, "Under17": 12, "Under11": 8 },
+    "C": { "Adult": 32, "Concession": 22, "Under17": 12, "Under11": 8 }
+  },
+  "North Stand": {
+    "A": { "Adult": 45, "Concession": 35, "Under17": 20, "Under11": 15 },
+    "B": { "Adult": 40, "Concession": 30, "Under17": 15, "Under11": 10 },
+    "C": { "Adult": 35, "Concession": 25, "Under17": 15, "Under11": 10 }
+  },
+  "South Stand": {
+    "A": { "Adult": 50, "Concession": 40, "Under17": 20, "Under11": 15 },
+    "B": { "Adult": 45, "Concession": 35, "Under17": 15, "Under11": 10 },
+    "C": { "Adult": 40, "Concession": 30, "Under17": 15, "Under11": 10 }
+  }
+};
+
+const opponents = [
+  "Birmingham City","Blackburn Rovers","Bristol City","Charlton Athletic",
+  "Coventry City","Derby County","Hull City","Ipswich Town","Leicester City",
+  "Middlesbrough","Millwall","Norwich City","Oxford United","Portsmouth",
+  "Preston North End","Queens Park Rangers","Sheffield United","Southampton",
+  "Stoke City","Swansea City","Watford","West Bromwich Albion","Wrexham",
+  "Grimsby Town","Leeds United"
+];
+
+// populate opponent dropdown
+const opponentSelect = document.getElementById('opponent');
+opponentSelect.innerHTML = '<option value="">-- Select Opponent --</option>';
+opponents.forEach(team => {
+  let opt = document.createElement('option');
+  opt.value = team;
+  opt.textContent = team;
+  opponentSelect.appendChild(opt);
+});
+
+let total = 0;
+
+function updatePrice() {
+  const stand = document.getElementById('stand').value;
+  const section = document.getElementById('section').value;
+  const ticketType = document.getElementById('ticketType').value;
+  if (stand && section && ticketType) {
+    const price = ticketPrices[stand][section][ticketType];
+    document.getElementById('price').textContent = price;
+    return price;
+  }
+  document.getElementById('price').textContent = 0;
+  return 0;
+}
+
+document.getElementById('stand').addEventListener('change', updatePrice);
+document.getElementById('section').addEventListener('change', updatePrice);
+document.getElementById('ticketType').addEventListener('change', updatePrice);
+
+function addEntry() {
+  const opponent = opponentSelect.value;
+  const stand = document.getElementById('stand').value;
+  const section = document.getElementById('section').value;
+  const ticketType = document.getElementById('ticketType').value;
+  const quantity = parseInt(document.getElementById('quantity').value, 10);
+  const price = updatePrice();
+
+  if (!opponent || !stand || !section || !ticketType || quantity < 1) {
+    alert("Please fill all fields correctly.");
+    return;
+  }
+
+  const subtotal = price * quantity;
+  total += subtotal;
+  document.getElementById('total').textContent = total;
+
+  const tbody = document.querySelector('#recordsTable tbody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${opponent}</td>
+    <td>${stand}</td>
+    <td>${section}</td>
+    <td>${ticketType}</td>
+    <td>${quantity}</td>
+    <td>£${price}</td>
+    <td>£${subtotal}</td>
+    <td><button onclick="deleteRow(this, ${subtotal})">Delete</button></td>
+  `;
+  tbody.appendChild(row);
+
+  // Save to Supabase
+  saveRecord({
+    opponent,
+    stand,
+    section,
+    ticket_type: ticketType,
+    quantity,
+    price,
+    subtotal
+  });
+}
+
+function deleteRow(button, amount) {
+  total -= amount;
+  document.getElementById('total').textContent = total;
+  button.parentElement.parentElement.remove();
+}
+</script>
+
+</body>
+</html>
