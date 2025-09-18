@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f9ff;
+      background: #ffffff;
       margin: 0;
       padding: 20px;
     }
@@ -58,6 +58,7 @@
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
     th, td {
       padding: 10px;
@@ -98,6 +99,13 @@
   </style>
 </head>
 <body>
+
+<!-- Image above header with safe fallback -->
+<img 
+  src="swfc.jpg" 
+  alt="Header Image" 
+  style="display:block; margin: 0 auto 20px; max-width:100%; max-height:250px; object-fit:contain;" 
+  onerror="this.style.display='none'; console.warn('Image not found: your-image.jpg');">
 
 <h1>Boycott Tracker</h1>
 
@@ -160,45 +168,69 @@
 <!-- ======= Supabase Integration ======= -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
-  const { createClient } = supabase;
-
-  // Replace with your actual values from Supabase Project Settings → API
   const supabaseUrl = "https://gjtvplruzqagjigpvcjp.supabase.co";
   const supabaseKey = "sb_publishable_yJOCn-MQYJgKc3Rv77NVxw_FCQQXKDX";
-  const db = createClient(supabaseUrl, supabaseKey);
+  const db = supabase.createClient(supabaseUrl, supabaseKey);
 
   async function saveRecord(record) {
-    let { data, error } = await db.from('boycotts').insert([record]);
+    const { data, error } = await db.from('boycotts').insert([record]);
     if (error) {
       console.error("Error saving:", error);
     } else {
-      console.log("Saved successfully:", data);
+      loadLiveRecords(); // refresh table and total
     }
   }
+
+  async function loadLiveRecords() {
+    const { data, error } = await db.from('boycotts').select('*').order('id', { ascending: false });
+    if (error) {
+      console.error("Error fetching records:", error);
+      return;
+    }
+
+    const tbody = document.querySelector('#recordsTable tbody');
+    tbody.innerHTML = '';
+    let totalCalc = 0;
+
+    data.forEach(record => {
+      const subtotal = (record.price || 0) * (record.quantity || 0);
+      totalCalc += subtotal;
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${record.opponent}</td>
+        <td>${record.stand}</td>
+        <td>${record.section}</td>
+        <td>${record.ticket_type}</td>
+        <td>${record.quantity}</td>
+        <td>£${record.price}</td>
+        <td>£${subtotal}</td>
+        <td><button onclick="deleteRowSupabase(${record.id})">Delete</button></td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById('total').textContent = totalCalc;
+  }
+
+  async function deleteRowSupabase(id) {
+    const { error } = await db.from('boycotts').delete().eq('id', id);
+    if (error) {
+      console.error("Error deleting record:", error);
+    } else {
+      loadLiveRecords(); // refresh table and total
+    }
+  }
+
+  loadLiveRecords();
 </script>
 
 <script>
 const ticketPrices = {
-  "Kop": {
-    "A": { "Adult": 40, "Concession": 30, "Under17": 20, "Under11": 15 },
-    "B": { "Adult": 35, "Concession": 25, "Under17": 15, "Under11": 10 },
-    "C": { "Adult": 30, "Concession": 20, "Under17": 15, "Under11": 10 }
-  },
-  "Grandstand": {
-    "A": { "Adult": 42, "Concession": 32, "Under17": 15, "Under11": 10 },
-    "B": { "Adult": 37, "Concession": 27, "Under17": 12, "Under11": 8 },
-    "C": { "Adult": 32, "Concession": 22, "Under17": 12, "Under11": 8 }
-  },
-  "North Stand": {
-    "A": { "Adult": 45, "Concession": 35, "Under17": 20, "Under11": 15 },
-    "B": { "Adult": 40, "Concession": 30, "Under17": 15, "Under11": 10 },
-    "C": { "Adult": 35, "Concession": 25, "Under17": 15, "Under11": 10 }
-  },
-  "South Stand": {
-    "A": { "Adult": 50, "Concession": 40, "Under17": 20, "Under11": 15 },
-    "B": { "Adult": 45, "Concession": 35, "Under17": 15, "Under11": 10 },
-    "C": { "Adult": 40, "Concession": 30, "Under17": 15, "Under11": 10 }
-  }
+  "Kop": { "A": { "Adult": 40, "Concession": 30, "Under17": 20, "Under11": 15 }, "B": { "Adult": 35, "Concession": 25, "Under17": 15, "Under11": 10 }, "C": { "Adult": 30, "Concession": 20, "Under17": 15, "Under11": 10 } },
+  "Grandstand": { "A": { "Adult": 42, "Concession": 32, "Under17": 15, "Under11": 10 }, "B": { "Adult": 37, "Concession": 27, "Under17": 12, "Under11": 8 }, "C": { "Adult": 32, "Concession": 22, "Under17": 12, "Under11": 8 } },
+  "North Stand": { "A": { "Adult": 45, "Concession": 35, "Under17": 20, "Under11": 15 }, "B": { "Adult": 40, "Concession": 30, "Under17": 15, "Under11": 10 }, "C": { "Adult": 35, "Concession": 25, "Under17": 15, "Under11": 10 } },
+  "South Stand": { "A": { "Adult": 50, "Concession": 40, "Under17": 20, "Under11": 15 }, "B": { "Adult": 45, "Concession": 35, "Under17": 15, "Under11": 10 }, "C": { "Adult": 40, "Concession": 30, "Under17": 15, "Under11": 10 } }
 };
 
 const opponents = [
@@ -210,17 +242,14 @@ const opponents = [
   "Grimsby Town","Leeds United"
 ];
 
-// populate opponent dropdown
 const opponentSelect = document.getElementById('opponent');
 opponentSelect.innerHTML = '<option value="">-- Select Opponent --</option>';
 opponents.forEach(team => {
-  let opt = document.createElement('option');
+  const opt = document.createElement('option');
   opt.value = team;
   opt.textContent = team;
   opponentSelect.appendChild(opt);
 });
-
-let total = 0;
 
 function updatePrice() {
   const stand = document.getElementById('stand').value;
@@ -252,42 +281,10 @@ function addEntry() {
     return;
   }
 
-  const subtotal = price * quantity;
-  total += subtotal;
-  document.getElementById('total').textContent = total;
-
-  const tbody = document.querySelector('#recordsTable tbody');
-  const row = document.createElement('tr');
-  row.innerHTML = `
-    <td>${opponent}</td>
-    <td>${stand}</td>
-    <td>${section}</td>
-    <td>${ticketType}</td>
-    <td>${quantity}</td>
-    <td>£${price}</td>
-    <td>£${subtotal}</td>
-    <td><button onclick="deleteRow(this, ${subtotal})">Delete</button></td>
-  `;
-  tbody.appendChild(row);
-
-  // Save to Supabase
-  saveRecord({
-    opponent,
-    stand,
-    section,
-    ticket_type: ticketType,
-    quantity,
-    price,
-    subtotal
-  });
-}
-
-function deleteRow(button, amount) {
-  total -= amount;
-  document.getElementById('total').textContent = total;
-  button.parentElement.parentElement.remove();
+  saveRecord({ opponent, stand, section, ticket_type: ticketType, quantity, price });
 }
 </script>
 
 </body>
 </html>
+
